@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import os
-import h5py
 
 '''
 
@@ -189,6 +188,9 @@ dictionary_default_pytorch_names_to_correct_names_base = {
 
 def load_weights_from_dump(model, dump_folder):
 
+    # For this to work we need the h5py package
+    import h5py
+    
     'Loads the weights saved as h5py files in the soumith repo linked above. Just here for completeness'
 
     dump_folder = os.path.abspath(dump_folder)
