@@ -168,3 +168,64 @@ def inception_v1_pretrained(path_to_weights='default'):
         path_to_weights = os.path.join(_currDir, 'inception_v1_weights')
     model.load_state_dict(torch.load(path_to_weights))
     return model
+
+
+dictionary_default_pytorch_names_to_correct_names_full = {
+    'conv1':'conv2d0',
+    'conv2':'conv2d1',
+    'conv3':'conv2d2',
+    'fc':'softmax2'
+}
+
+dictionary_default_pytorch_names_to_correct_names_base = {
+    'conv1':   'mixed{}_1x1',
+    'conv3_1': 'mixed{}_3x3_bottleneck',
+    'conv3_3': 'mixed{}_3x3',
+    'conv5_1': 'mixed{}_5x5_bottleneck',
+    'conv5_5': 'mixed{}_5x5',
+    'conv_max_1': 'mixed{}_pool_reduce'
+}
+
+def load_weights_from_dump(model, dump_folder):
+
+    'Loads the weights saved as h5py files in the soumith repo linked above. Just here for completeness'
+
+    dump_folder = os.path.abspath(dump_folder)
+    for name, layer in model.named_parameters():
+        #get path from name
+        if 'inception' in name:
+            first_dot = name.find('.')
+            name_inception = name[:first_dot].replace('inception_', '')
+            name_layer = name[first_dot+1:name.find('.', first_dot+1)]
+            name_layer = dictionary_default_pytorch_names_to_correct_names_base[name_layer].format(name_inception)
+        else:
+            name_layer = name[:name.find('.')]
+            name_layer = dictionary_default_pytorch_names_to_correct_names_full[name_layer]
+        if 'weight' in name:
+            filename = name_layer + '_w.h5'
+        else:
+            filename = name_layer + '_b.h5'
+
+        filename = os.path.join(dump_folder, filename)
+        #print(filename, 'exists', os.path.isfile(filename))
+
+        f = h5py.File(filename, 'r')
+        a_group_key = list(f.keys())[0]
+        w = np.asarray(list(f[a_group_key]))
+
+        w = torch.from_numpy(w)
+        if 'weight' in name:
+            w = w.transpose(1, 3).transpose(2, 3)
+        if name_layer == 'softmax2':
+            w = w.squeeze()
+            # Adjust the size - because google has 1008 classes, class 1 - 1000 are valid
+            if 'weight' in name:
+                w = w[1:1001, :]
+            else:
+                w = w[1:1001]
+
+        if layer.data.size() != w.size():
+            raise ValueError('Incompatible sizes')
+        layer.data = w
+
+    return model
