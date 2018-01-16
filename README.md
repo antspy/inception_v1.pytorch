@@ -4,6 +4,8 @@ An implementation of inception_v1 on pytorch with pretrained weights.
 This code is a pytorch translation of the soumith torch repo: https://github.com/soumith/inception.torch
 It implements the original version of the inception architechture; what is known has GoogLeNet.
 
+Pretrained weights can be found at https://mega.nz/#!wMZ0TB4T!RcgZYDescGHiPliU0PjN9IGOerteCPWxZYl4Ywf8u4Y
+
 # Disclaimer 
 I have not tested the resulting accuracy on imagenet, so there could be a bug in the implementation or the loading of the weights. If you use this and see that it works, please let me know! :-)
 
