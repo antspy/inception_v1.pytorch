@@ -10,4 +10,4 @@ Pretrained weights can be found at https://mega.nz/#!wMZ0TB4T!RcgZYDescGHiPliU0P
 I have not tested the resulting accuracy on imagenet, so there could be a bug in the implementation or the loading of the weights. If you use this and see that it works, please let me know! :-)
 
 # License
-The code is licensed under the MIT Licence. See the [LICENSE.md](LICENSE.md) file for detail.
+The code is licensed under the MIT Licence. See the [LICENSE](LICENSE) file for detail.
