@@ -125,7 +125,7 @@ class Inception_v1(nn.Module):
         self.inception_5b = Inception_base(1, 832, [[384], [192,384], [48,128], [3,128]]) #5b
         self.avg_pool5 = nn.AvgPool2d(kernel_size=7, stride=1, padding=0)
 
-        self.dropout_layer = nn.Dropout(0.4)
+        self.dropout_layer = nn.Dropout2d(0.4)
         self.fc = nn.Linear(1024, num_classes)
 
         self.apply(layer_init)
