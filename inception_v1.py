@@ -94,7 +94,7 @@ class Inception_base(nn.Module):
         #mixed 'name'_pool_reduce
         self.conv_max_1 = nn.Conv2d(input_size, out_channels=config[3][1], kernel_size=1, stride=1, padding=0)
 
-        self.apply(ayer_init)
+        self.apply(layer_init)
 
     def forward(self, input):
 
