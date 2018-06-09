@@ -2,11 +2,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
-from helpers.modules import LRN
 import torch.nn.functional as F
-import helpers.functions as mhf
 import os
-import helpers
 
 # Data handling:
 # normalize = transforms.Normalize(mean=[0.4588, 0.4588, 0.4588],
@@ -21,6 +18,59 @@ import helpers
 #         ])),
 #         batch_size=args.batch_size, shuffle=False,
 #         num_workers=args.workers, pin_memory=True)
+
+def layer_init(m):
+    classname = m.__class__.__name__
+    classname = classname.lower()
+    if classname.find('conv') != -1 or classname.find('linear') != -1:
+        gain = nn.init.calculate_gain(classname)
+        nn.init.xavier_uniform(m.weight, gain=gain)
+        if m.bias is not None:
+            nn.init.constant(m.bias, 0)
+    elif classname.find('batchnorm') != -1:
+        nn.init.constant(m.weight, 1)
+        if m.bias is not None:
+            nn.init.constant(m.bias, 0)
+    elif classname.find('embedding') != -1:
+        # The default initializer in the TensorFlow embedding layer is a truncated normal with mean 0 and
+        # standard deviation 1/sqrt(sparse_id_column.length). Here we use a normal truncated with 3 std dev
+        num_columns = m.weight.size(1)
+        sigma = 1/(num_columns**0.5)
+        m.weight.data.normal_(0, sigma).clamp_(-3*sigma, 3*sigma)
+
+class LRN(nn.Module):
+
+    '''
+    Implementing Local Response Normalization layer. Implemention adapted
+    from https://github.com/jiecaoyu/pytorch_imagenet/blob/master/networks/model_list/alexnet.py
+    '''
+
+    def __init__(self, local_size=1, alpha=1.0, beta=0.75, k=1, ACROSS_CHANNELS=False):
+        super(LRN, self).__init__()
+        self.ACROSS_CHANNELS = ACROSS_CHANNELS
+        if ACROSS_CHANNELS:
+            self.average=nn.AvgPool3d(kernel_size=(local_size, 1, 1),
+                    stride=1,
+                    padding=(int((local_size-1.0)/2), 0, 0))
+        else:
+            self.average=nn.AvgPool2d(kernel_size=local_size,
+                    stride=1,
+                    padding=int((local_size-1.0)/2))
+        self.alpha = alpha
+        self.beta = beta
+        self.k = k
+
+    def forward(self, x):
+        if self.ACROSS_CHANNELS:
+            div = x.pow(2).unsqueeze(1)
+            div = self.average(div).squeeze(1)
+            div = div.mul(self.alpha).add(self.k).pow(self.beta)
+        else:
+            div = x.pow(2)
+            div = self.average(div)
+            div = div.mul(self.alpha).add(self.k).pow(self.beta)
+        x = x.div(div)
+        return x
 
 class Inception_base(nn.Module):
     def __init__(self, depth_dim, input_size, config):
@@ -45,7 +95,7 @@ class Inception_base(nn.Module):
         #mixed 'name'_pool_reduce
         self.conv_max_1 = nn.Conv2d(input_size, out_channels=config[3][1], kernel_size=1, stride=1, padding=0)
 
-        self.apply(helpers.modules.layer_init)
+        self.apply(ayer_init)
 
     def forward(self, input):
 
@@ -97,7 +147,7 @@ class Inception_v1(nn.Module):
         self.dropout_layer = nn.Dropout(0.4)
         self.fc = nn.Linear(1024, num_classes)
 
-        self.apply(helpers.modules.layer_init)
+        self.apply(layer_init)
 
     def forward(self, input):
 
